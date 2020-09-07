@@ -1,8 +1,10 @@
 package site.plyx.yunfeigjdevops.dao;
 
+import org.apache.ibatis.annotations.Mapper;
 import site.plyx.yunfeigjdevops.model.User;
 import java.util.List;
 
+@Mapper
 public interface UserMapper {
     int deleteByPrimaryKey(Integer id);
 
@@ -17,7 +19,7 @@ public interface UserMapper {
     int updateByPrimaryKey(User record);
 
     /**
-     * 查找所有用户
+     * 查寻全部用户
      * @return
      */
     List<User> findAll();
