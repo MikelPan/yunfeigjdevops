@@ -10,7 +10,7 @@ spring:
     #接收者邮箱账号
     receiver: plyx_46204@126.com
     #发送者密钥
-    password: 937929856@cn
+    password:
     default-encoding: utf-8
     port: 25  #端口号465或587
     protocol: smtp
