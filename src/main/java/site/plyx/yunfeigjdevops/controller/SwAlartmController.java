@@ -1,13 +1,10 @@
 package site.plyx.yunfeigjdevops.controller;
 
-import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Value;
-
-import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.util.LinkedMultiValueMap;
-import site.plyx.yunfeigjdevops.dao.SwAlartmDTO;
+import site.plyx.yunfeigjdevops.model.SwAlarm;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,16 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
-import com.alibaba.fastjson.JSONObject;
 import org.springframework.http.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 
 
-import java.io.IOException;
 
 import java.util.List;
-import java.util.Map;
 
 @Log4j2
 @RestController
@@ -47,14 +40,12 @@ public class SwAlartmController {
     @Value("${spring.mail.receiver}")
     private String receiver_email;
 
-    @Value("${spring.weiXin.url}")
-    private String weiXin_url;
 
     /*
     接收告警通知发送到邮箱
      */
     @PostMapping("/smtp")
-    public void smtpReceiver(@RequestBody List<SwAlartmDTO> alarmList) {
+    public void smtpReceiver(@RequestBody List<SwAlarm> alarmList) {
         SimpleMailMessage message = new SimpleMailMessage();
         // 发送者邮箱
         message.setFrom(send_email);
@@ -72,38 +63,36 @@ public class SwAlartmController {
     /*
     接收告警通知发送到微信
      */
-    @PostMapping("/weixin")
-    public void weiXinReceiver(@RequestBody  List<SwAlartmDTO> alarmList) {
-
-        MultiValueMap<String, Object> request = new LinkedMultiValueMap<>();
-
+    @PostMapping("/wx")
+    public String weiXinReceive(@RequestBody List<SwAlarm> alarmList) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        MediaType type = MediaType.parseMediaType("application/json; charset=UTF-8");
+        headers.setContentType(type);
+        String wxContent = getContent(alarmList);
+        String url = "http://example.com/hotels/1/bookings";
+        String reqBody = new StringBuilder()
+                .append("{")
+                .append("\n    \"msgtype\": \"markdown\",")
+                .append("\n    \"markdown\": {")
+                .append("\n        \"content\": ").append("\"")
+                .append("\n")
+                .append(wxContent)
+                .append("        \"")
+                .append("\n")
+                .append("    }")
+                .append("\n")
+                .append("}").toString();
+        System.out.println(reqBody);
+        HttpEntity<String> request = new HttpEntity<String>(reqBody, headers);
+        String result = restTemplate.postForObject(url, request, String.class);
+        log.info("微信消息已发送...");
+        return result;
     }
 
-    /*
-    封装企业微信数据
-     */
-    private String weiXinContent(String content, boolean isAtAll, List<String> mobileList) {
-        //消息内容
-        Map<String,String> contentMap = Maps.newHashMap();
-
-        //通知人
-        Map<String, Object> atMap = Maps.newHashMap();
-        //1.是否通知所有人
-        atMap.put("isAll", isAtAll);
-        //2.通知具体人的手机号码列表
-        atMap.put("atMobiles", mobileList);
-
-        Map<String, Object> reqMap = Maps.newHashMap();
-        reqMap.put("msgtype", "text");
-        reqMap.put("text", contentMap);
-        reqMap.put("at", atMap);
-
-        return JSON.toJSONString(reqMap);
-    }
-
-    private String getContent(List<SwAlartmDTO> alarmList) {
+    private String getContent(List<SwAlarm> alarmList) {
         StringBuilder sb = new StringBuilder();
-        for (SwAlartmDTO dto : alarmList) {
+        for (SwAlarm dto : alarmList) {
             sb.append("scopeId: ").append(dto.getScopeId())
                     .append("\nscope: ").append(dto.getScope())
                     .append("\n目标 Scope 的实体名称: ").append(dto.getName())
